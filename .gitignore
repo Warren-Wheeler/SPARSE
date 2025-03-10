@@ -1,0 +1,6 @@
+*.json
+*.csv
+*.log
+*.cache
+
+/modules/__pycache__

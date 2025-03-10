@@ -9,7 +9,7 @@ import modules.spotify_utilities as spotify_utilities
 import time
 import modules.utilities as utilities
 
-logging.basicConfig(filename='album_ranker.log', level=logging.INFO)
+logging.basicConfig(filename='./log/album_ranker.log', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AlbumRankerConfigsException(Exception):
