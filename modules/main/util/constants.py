@@ -17,10 +17,11 @@ HIGHEST_POSSIBLE_SCORE_KEY = "highest_possible_score"
 ITEMS_KEY = "items"
 NAME_KEY = "name"
 RELEASE_DATE_KEY = "release_date"
-TRACKS_KEY = "tracks"
 TRACK_KEY = "track"
+TRACKS_KEY = "tracks"
 URI_KEY = "uri"
 YEAR_KEY = "year"
 
 # File Extensions:
 CSV_EXTENSION = ".csv"
+JSON_EXTENSION = ".json"

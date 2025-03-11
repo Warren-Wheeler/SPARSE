@@ -1,6 +1,7 @@
 import datetime as dt
 import json
 
+
 def read_json_file(file_path: str) -> dict:
     """
     Read a JSON file and returns the data as a Python dictionary.
@@ -20,11 +21,14 @@ def read_json_file(file_path: str) -> dict:
     except json.JSONDecodeError:
         raise json.JSONDecodeError(f"Error: Invalid JSON format in {file_path}")
 
-def extractYearFromDate(date: str) -> int:
-    """Extract the year from a date string."""
-    return int(date[:4])
+def extract_year_from_date(date: str) -> int:
+    """Extract the year from a date string. Strips whitespace."""
+    try:
+        return int(date.lstrip()[:4])
+    except ValueError:
+        raise ValueError(f"Error: Invalid date format {date}.")
 
-def getSecondsSinceDatetime(t0: dt.datetime) -> float:
+def get_seconds_since_datetime(t0: dt.datetime) -> float:
     """Get the number of seconds that have passed since a datetime."""
     now = dt.datetime.now()
     return (now-t0).total_seconds()

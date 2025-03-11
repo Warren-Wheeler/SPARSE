@@ -1,153 +1,15 @@
-import modules.album_ranker_constants as constants
-from dataclasses import dataclass
 import datetime as dt
 import logging
-from itertools import batched
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-import modules.spotify_utilities as spotify_utilities
-import time
-import modules.utilities as utilities
+from dataclasses import dataclass
+import modules.main.util.constants as constants
+from modules.main.configs.sparse_configs import SparseConfigs
+import modules.main.spotify.spotify_utilities as spotify_utilities
+from modules.main.spotify.spotify_client import SpotifyClient
+import modules.main.util.utilities as utilities
+
 
 logging.basicConfig(filename='./log/album_ranker.log', level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-class AlbumRankerConfigsException(Exception):
-    """An exception that is thrown when there is a problem with validating the configs file."""
-    pass
-
-class AlbumRankerConfigs:
-    """
-    A class representing an Album Ranker configs.
-
-    Attributes:
-        config_file (str): The path to the configs JSON file.
-    """
-    
-    def __init__(self, configs_file_path: str):
-        """
-        Initializes the Album Ranker configs.
-
-        Args:
-            configs_file_path (str): The path to the configs file. Should be JSON format.
-        """
-        configs = self.__getConfigsFromFile(configs_file_path=configs_file_path)
-        self.__validate(configs, configs_file_path=configs_file_path)
-        self.__client_id = configs[constants.CLIENT_ID_KEY]
-        self.__client_secret = configs[constants.CLIENT_SECRET_KEY]
-        self.__tier_3_playlist_id = configs[constants.TIER_3_PLAYLIST_ID_KEY]
-        self.__tier_2_playlist_id = configs[constants.TIER_2_PLAYLIST_ID_KEY]
-        self.__tier_1_playlist_id = configs[constants.TIER_1_PLAYLIST_ID_KEY]
-        self.__override = utilities.read_json_file(file_path=configs[constants.OVERRIDE_FILE_PATH_KEY])
-        self.__ranker_output_path = configs[constants.RANKER_OUTPUT_PATH_KEY]
-        self.__tier_3_yearly_threshold = configs[constants.TIER_3_YEARLY_THRESHOLD_KEY]
-        self.__album_length_threshold_min = configs[constants.ALBUM_LENGTH_THRESHOLD_MIN_KEY]
-
-    def __getConfigsFromFile(self, configs_file_path: str) -> dict:
-        """
-        Parse the configs from the config file. Throw a detailed exception if there are problems.
-
-        Args:
-            configs_file_path (str): The path to the config file. Should be JSON format.
-
-        Returns:
-            dict: The parsed configs.
-        """
-        try:
-            return utilities.read_json_file(file_path=configs_file_path)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"The config file couldn't be found at `{configs_file_path}`.")
-
-    def __raiseExceptionIfIssuesExist(self, issues: list, configs_file_path: str) -> None:
-        """Throw an exception if there are issues with the config file."""
-        if issues:
-            issuesString = f"The following issues were found with the Album Ranker config file ({configs_file_path}):"
-            for issue in issues: issuesString += f"\n\t{issue}"
-            raise AlbumRankerConfigsException(issuesString)
-        
-    def __check_key(self, configs: dict, key: str, expected_type: type, issues: list) -> None:
-        """
-        Check a key to make sure it exists in the configs and matches the expected type. If a key is
-        missing or doesn't match the expected type, append a detailed message about it to the issues list.
-        """
-        if key not in configs:
-            issues.append(f"No `{key}` detected in Album Ranker configs.")
-        elif not isinstance(configs[key], expected_type):
-            issues.append(f"`{key}` in Album Ranker configs must be a `{expected_type.__name__}`.")
-        elif isinstance(configs[key], str) and configs[key] == "":
-            issues.append(f"`{key}` in Album Ranker configs must not be empty.")
-
-    def __validate(self, configs: dict, configs_file_path: str) -> None:
-        """
-        Validates the parsed configs. Throws a detailed exception if there are issues with the configs.
-
-        Args:
-            configs (dict): The parsed configs.
-            configs_file_path (str): The path to the configs file.
-        """
-        issues = []
-
-        # Check the config dict to make sure the expected keys exist and have the expected type.
-        keys_and_types = {
-            constants.CLIENT_ID_KEY: str,
-            constants.CLIENT_SECRET_KEY: str,
-            constants.TIER_3_PLAYLIST_ID_KEY: str,
-            constants.TIER_2_PLAYLIST_ID_KEY: str,
-            constants.TIER_1_PLAYLIST_ID_KEY: str,
-            constants.OVERRIDE_FILE_PATH_KEY: str,
-            constants.RANKER_OUTPUT_PATH_KEY: str,
-            constants.TIER_3_YEARLY_THRESHOLD_KEY: int,
-            constants.ALBUM_LENGTH_THRESHOLD_MIN_KEY: int
-        }
-        
-        for key, expected_type in keys_and_types.items():
-            self.__check_key(configs, key, expected_type, issues)
-        self.__raiseExceptionIfIssuesExist(issues=issues, configs_file_path=configs_file_path)
-
-        # Extra validation:
-        if not configs[constants.RANKER_OUTPUT_PATH_KEY].lower().endswith(constants.CSV_EXTENSION): 
-            issues.append(f"Album Ranker output file must be a {constants.CSV_EXTENSION} file. Please check configs.") 
-        if (configs[constants.TIER_3_YEARLY_THRESHOLD_KEY] <= 0):
-            issues.append("Tier 3 yearly threshold must be greater than 0.")
-        if (configs[constants.ALBUM_LENGTH_THRESHOLD_MIN_KEY] <= 0):
-            issues.append("Album length threshold must be greater than 0.")
-        self.__raiseExceptionIfIssuesExist(issues=issues, configs_file_path=configs_file_path)
-
-    def getClientID(self) -> str:
-        """Get the client ID."""
-        return self.__client_id
-    
-    def getClientSecret(self) -> str:
-        """Get the client secret."""
-        return self.__client_secret
-
-    def getTier3PlaylistID(self) -> str:
-        """Get the tier 3 playlist ID."""
-        return self.__tier_3_playlist_id
-
-    def getTier2PlaylistID(self) -> str:
-        """Get the tier 3 playlist ID."""
-        return self.__tier_2_playlist_id
-
-    def getTier1PlaylistID(self) -> str:
-        """Get the tier 3 playlist ID."""
-        return self.__tier_1_playlist_id
-
-    def getAlbumOverrides(self) -> dict:
-        """Get the album overrides."""
-        return self.__override
-
-    def getAlbumRankerOutputPath(self) -> str:
-        """Get the Album Ranker output path."""
-        return self.__ranker_output_path
-
-    def getTier3YearlyThreshold(self) -> int:
-        """Get the Tier 3 yearly threshold."""
-        return self.__tier_3_yearly_threshold
-
-    def getAlbumLengthThresholdMin(self) -> int:
-        """Get the Album length threshold in minutes. All albums shorter than this length will be filtered out."""
-        return self.__album_length_threshold_min
 
 @dataclass
 class Album:
@@ -176,78 +38,6 @@ class Album:
     best_tracks: set
     album_id: str
 
-class AlbumRankerPlaylistTierException(Exception):
-    pass
-
-class SpotifyClient:
-    """A class representing a client for interacting with Spotify API using retry logic."""
-        
-    # The redirect uri for authenticating the Spotify client.
-    __redirect_uri = "https://example.com/callback"
-    # The scope for the python API. We need modify permissions to remove all tracks from each temp playlist and add them back.
-    __scope = "playlist-modify-private"
-
-    def __init__(self, configs: AlbumRankerConfigs):
-        """
-        Initializes an Spotify Client object.
-
-        Args:
-            configs (AlbumRankerConfigs): The Album Ranker configs.
-        """
-        self.__client = spotipy.Spotify(auth_manager=SpotifyOAuth(
-            client_id=configs.getClientID(),
-            client_secret=configs.getClientSecret(),
-            redirect_uri=self.__redirect_uri,
-            scope=self.__scope
-        ))
-
-    def __run_with_retry(self, func, id: str, items: list = None, max_retries: int=3, delay_seconds: int=1):
-        """
-        Run something with a variable number of times if an exception is encountered.
-
-        Args:
-            func (function): The function containing the call to the resource.
-            retries (int): The number of retries before throwing an exception. 2 by default.
-            delay_seconds (int): Delay between tries in seconds.
-        """
-        for attempt in range(max_retries):
-            try:
-                if (items == None):
-                    return func(id)
-                else:
-                    return func(id, items)
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    raise  # Re-raise exception on the last attempt
-                print(f"Attempt {attempt + 1} failed: {e}, retrying in {delay_seconds} seconds...")
-                time.sleep(delay_seconds)
-
-    def getAlbum(self, album_id: str) -> dict:
-        """Try to fetch an album using the Spotify client."""
-        return self.__run_with_retry(func=self.__client.album, id=album_id)
-
-    def getPlaylistItems(self, playlist_id: str) -> dict:
-        """Try to fetch the tracks from a playlist using the Spotify client."""
-        return self.__run_with_retry(func=self.__client.playlist, id=playlist_id)[constants.TRACKS_KEY][constants.ITEMS_KEY]
-
-    def removePlaylistItems(self, playlist_id: str, tracks: list) -> None:
-        """Try to remove tracks from a playlist in batches of 100 using the Spotify client."""
-        for batch in batched(tracks, 100):
-            self.__run_with_retry(
-                func=self.__client.playlist_remove_all_occurrences_of_items, 
-                id=playlist_id, 
-                items=batch
-            )
-
-    def addPlaylistItems(self, playlist_id: str, tracks: list) -> None:
-        """Try to add tracks to a playlist in batches of 100 using the Spotify client."""
-        for batch in batched(tracks, 100):
-            self.__run_with_retry(
-                func=self.__client.playlist_add_items,
-                id=playlist_id, 
-                items=batch
-            )
-
 class AlbumRanker:
     """
     A class representing an Album Ranker.
@@ -260,12 +50,12 @@ class AlbumRanker:
     # The columns of the CSV file generated by the ranker.
     __cols = "Artists,Album Name,Year,Total Score,Highest Possible Score,Tier 3 Tracks"
 
-    def __init__(self, configs: AlbumRankerConfigs):
+    def __init__(self, configs: SparseConfigs):
         """
         Initializes an Album Ranker object.
 
         Args:
-            configs (AlbumRankerConfigs): The Album Ranker configs.
+            configs (SparseConfigs): The Album Ranker configs.
         """
         # Set the Album Ranker configs.
         self.__configs = configs
@@ -298,9 +88,9 @@ class AlbumRanker:
         enriched_album = self.__client.getAlbum(album_id=album_id)
 
         album_tracks = enriched_album[constants.TRACKS_KEY][constants.ITEMS_KEY]
-        highest_possible_score = spotify_utilities.getAlbumHighestPossibleScore(album_tracks=album_tracks)
-        year = utilities.extractYearFromDate(date=album[constants.RELEASE_DATE_KEY])
-        tracks = spotify_utilities.getTrackNamesFromAlbum(album_tracks=album_tracks)
+        highest_possible_score = spotify_utilities.get_album_highest_possible_score(spotify_album_tracks=album_tracks)
+        year = utilities.extract_year_from_date(date=album[constants.RELEASE_DATE_KEY])
+        tracks = spotify_utilities.get_track_names(spotify_album_tracks=album_tracks)
         
         new_album = Album(
             artists=artist_names,
@@ -315,17 +105,6 @@ class AlbumRanker:
         )
 
         return new_album
-
-    def __getTrackKey(self, name: str, tier: int) -> str:
-        """
-        Get the track key for a Spotify track at a certain tier.
-        
-        Returns:
-            str: The track key formatted as: "<TRACK_NAME>_<TIER>"
-        """
-        if (tier > 3) or (tier < 1):
-            raise AlbumRankerPlaylistTierException("Tried to add {name} to tier {tier}, but there is only a tier for 1, 2 and 3.")
-        return f"{name}_{tier}"
 
     def __addTieredTrackToMemory(
         self, 
@@ -353,9 +132,9 @@ class AlbumRanker:
             score (float): The score for the track.
             track_id (str): The Spotify track ID for the track.
         """
-        key = self.__getTrackKey(name=name, tier=tier)
+        key = spotify_utilities.get_track_key(name=name, tier=tier)
         memory[album_key].playlist_placements[key] = score
-        tier_key = spotify_utilities.getTierKey(tier)
+        tier_key = spotify_utilities.get_tier_key(tier)
         # Only add to best tracks and increase album duration if this track hasn't been counted yet.
         if (tier_key not in tier_tracks[tier_key]):
             tier_tracks[tier_key].add(track_id)
@@ -397,8 +176,8 @@ class AlbumRanker:
             memory (dict): The Albums encountered during this Album Ranker run, grouped by album key.
             tier_tracks (dict): The Spotify track IDs for tracks encountered during this Album Ranker run, grouped by tier ID.
         """
-        name = spotify_utilities.getNameFromTrack(track=track)
-        score = spotify_utilities.getScoreFromTrack(track=track)
+        name = spotify_utilities.get_track_name(spotify_track=track)
+        score = spotify_utilities.get_track_score(spotify_track=track)
         track_id = track[constants.URI_KEY]
         duration_ms=track[constants.DURATION_MS_KEY]
 
@@ -463,7 +242,7 @@ class AlbumRanker:
 
                 unwrapped_track = track[constants.TRACK_KEY]
                 album = unwrapped_track[constants.ALBUM_KEY]
-                artists = spotify_utilities.getArtistNamesFromAlbum(album=album)
+                artists = spotify_utilities.get_album_artist_names(spotify_album=album)
                 album_key = self.__getAlbumKeyGivenArtists(artists=artists, album=album)
 
                 # If the album this track belongs to does not exist in memory, add it.
@@ -576,11 +355,11 @@ class AlbumRanker:
 
     def __executeTierTrackDiff(self, tier_tracks: dict) -> None:
         """Remove tracks represented in higher tiers from lower tiers in memory."""
-        tier_tracks[spotify_utilities.getTierKey(2)] = tier_tracks[spotify_utilities.getTierKey(2)].difference(
-            tier_tracks[spotify_utilities.getTierKey(3)]
+        tier_tracks[spotify_utilities.get_tier_key(2)] = tier_tracks[spotify_utilities.get_tier_key(2)].difference(
+            tier_tracks[spotify_utilities.get_tier_key(3)]
         )
-        tier_tracks[spotify_utilities.getTierKey(1)] = tier_tracks[spotify_utilities.getTierKey(1)].difference(
-            tier_tracks[spotify_utilities.getTierKey(3)] | tier_tracks[spotify_utilities.getTierKey(2)]
+        tier_tracks[spotify_utilities.get_tier_key(1)] = tier_tracks[spotify_utilities.get_tier_key(1)].difference(
+            tier_tracks[spotify_utilities.get_tier_key(3)] | tier_tracks[spotify_utilities.get_tier_key(2)]
         )
 
     def __getOutputRowFromAlbum(self, album: Album) -> str:
@@ -654,21 +433,21 @@ class AlbumRanker:
         self.__addTracksToPlaylist(
             tier=3, 
             playlist_id=self.__configs.getTier3PlaylistID(), 
-            tracks=tier_tracks[spotify_utilities.getTierKey(3)]
+            tracks=tier_tracks[spotify_utilities.get_tier_key(3)]
         )
 
         # Add tracks back to tier 2 playlist.
         self.__addTracksToPlaylist(
             tier=2, 
             playlist_id=self.__configs.getTier2PlaylistID(), 
-            tracks=tier_tracks[spotify_utilities.getTierKey(2)]
+            tracks=tier_tracks[spotify_utilities.get_tier_key(2)]
         )
 
         # Add tracks back to tier 1 playlist.
         self.__addTracksToPlaylist(
             tier=1, 
             playlist_id=self.__configs.getTier1PlaylistID(), 
-            tracks=tier_tracks[spotify_utilities.getTierKey(1)]
+            tracks=tier_tracks[spotify_utilities.get_tier_key(1)]
         )
 
     def run(self) -> None:
@@ -679,9 +458,9 @@ class AlbumRanker:
         # Initialize memory:
         memory = {}
         tier_tracks = {
-            spotify_utilities.getTierKey(3): set(),
-            spotify_utilities.getTierKey(2): set(),
-            spotify_utilities.getTierKey(1): set()
+            spotify_utilities.get_tier_key(3): set(),
+            spotify_utilities.get_tier_key(2): set(),
+            spotify_utilities.get_tier_key(1): set()
         }
 
         # Collect scoring metadata for all tiers:
@@ -699,8 +478,8 @@ class AlbumRanker:
         # Write ranker results to file:
         self.__writeAlbumRankerResults(memory=memory)
 
-        logger.info(f"Ranker completed in {utilities.getSecondsSinceDatetime(t0)} seconds.")
+        logger.info(f"Ranker completed in {utilities.get_seconds_since_datetime(t0)} seconds.")
 
-configs = AlbumRankerConfigs(configs_file_path="./config.json")
+configs = SparseConfigs()
 ranker = AlbumRanker(configs=configs)
 ranker.run()
