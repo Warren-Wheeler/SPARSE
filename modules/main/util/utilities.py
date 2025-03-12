@@ -32,3 +32,9 @@ def get_seconds_since_datetime(t0: dt.datetime) -> float:
     """Get the number of seconds that have passed since a datetime."""
     now = dt.datetime.now()
     return (now-t0).total_seconds()
+
+def get(data: dict, key: any, orElse: any = None):
+    try:
+        return data[key]
+    except KeyError:
+        return orElse

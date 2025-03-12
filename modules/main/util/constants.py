@@ -2,12 +2,15 @@
 ALBUM_LENGTH_THRESHOLD_MIN_KEY = "album_length_threshold_min"
 CLIENT_ID_KEY = "client_id"
 CLIENT_SECRET_KEY = "client_secret"
-OVERRIDE_FILE_PATH_KEY = "override_file_path"
-RANKER_OUTPUT_PATH_KEY = "ranker_output_path"
+GENRE_PLAYLISTS_FILE_PATH_KEY = "genre_playlists_file_path"
+RANKER_OVERRIDE_FILE_PATH_KEY = "ranker_override_file_path"
+RANKED_ALBUM_GENRES_FILE_PATH_KEY = "ranked_album_genres_file_path"
+RANKER_OUTPUT_FILE_PATH_KEY = "ranker_output_file_path"
 TIER_1_PLAYLIST_ID_KEY = "tier_1_playlist_id"
 TIER_2_PLAYLIST_ID_KEY = "tier_2_playlist_id"
 TIER_3_PLAYLIST_ID_KEY = "tier_3_playlist_id"
 TIER_3_YEARLY_THRESHOLD_KEY = "tier_3_yearly_threshold"
+USER_KEY = "user"
 
 # Spotify JSON response key names:
 ALBUM_KEY = "album"
@@ -22,6 +25,54 @@ TRACKS_KEY = "tracks"
 URI_KEY = "uri"
 YEAR_KEY = "year"
 
-# File Extensions:
+# Sorting key names:
+SORTER_ALBUM_NAME_KEY = "Album Name"
+SORTER_ARTISTS_KEY = "Artists"
+SORTER_GENRE_KEY = "Genre"
+SORTER_GENRES_KEY = "Genres"
+SORTER_HIGHEST_POSSIBLE_SCORE_KEY = "Highest Possible Score"
+SORTER_RATING_KEY = "Rating"
+SORTER_TIER_3_TRACKS_KEY = "Tier 3 Tracks"
+SORTER_TOTAL_SCORE_KEY = "Total Score"
+SORTER_YEAR_KEY = "Year"
+
+# Ranking constants:
+OUTPUT_FILE_COLUMN_NAMES = f"{SORTER_ARTISTS_KEY}," + \
+    f"{SORTER_ALBUM_NAME_KEY}," + \
+    f"{SORTER_YEAR_KEY}," + \
+    f"{SORTER_TOTAL_SCORE_KEY}," + \
+    f"{SORTER_HIGHEST_POSSIBLE_SCORE_KEY}," + \
+    f"{SORTER_TIER_3_TRACKS_KEY}"
+
+# Sorting constants:
+ALL_GENRES_NAME = "All Genres"
+ALL_YEARS_NAME = "All Years"
+UNKNOWN_GENRE_NAME = "UNK"
+
+# Sorter GUI constants:
+ALBUM_LIST_GENRE_KEY = "-ALBUM_LIST_GENRE-"
+ALBUM_LIST_OUTPUT_KEY = "-DEFAULT_FONT-"
+ALBUM_LIST_TITLE = "Album List"
+ALBUM_LIST_YEAR_KEY = "-ALBUM_LIST_YEAR-"
+APPLICATION_TITLE = "SPARSE (Spotify Python Album Ranking and Sorting Engine)"
+CONFIRM_GENRE_TAG = "Confirm Genre"
+DEFAULT_FONT = "Courier 14"
+DEFAULT_HEIGHT = 40
+DEFAULT_WIDTH = 175
+DEFAULT_DIMENSIONS = (DEFAULT_WIDTH, DEFAULT_HEIGHT)
+GENRE_ENTRY_TITLE = "Genre Entry"
+GENRE_INPUT_KEY = "-GENRE_INPUT-"
+GENRE_TAG = "Genre:"
+LIST_ALBUMS_TAG = "List Albums"
+LIST_TIER_3_TAG = "List Tier 3"
+SET_GENRE_TAG = "Set Genre:"
+TIER_3_LIST_OUTPUT_KEY="-TIER_3_LIST_OUTPUT-"
+TIER_3_LIST_YEAR_KEY="-TIER_3_LIST_YEAR-"
+TIER_3_TRACK_LIST_TITLE = "Tier 3 Tracks"
+UNKNOWN_ALBUM_KEY = "UNK_ALBUM"
+YEAR_ERROR_MESSAGE = f"Year must be an integer or `{ALL_YEARS_NAME}`."
+YEAR_TAG = "Year:"
+
+# File extensions:
 CSV_EXTENSION = ".csv"
 JSON_EXTENSION = ".json"

@@ -5,8 +5,10 @@
     "tier_3_playlist_id": "",
     "tier_2_playlist_id": "",
     "tier_1_playlist_id": "",
-    "override_file_path": "./res/override.json",
-    "ranker_output_path": "./res/albums.csv",
-    "tier_3_yearly_threshold": 9999,
+    "ranker_override_file_path": "./res/override.json",
+    "ranker_output_file_path": "./res/albums.csv",
+    "ranked_album_genres_file_path": "./res/genres.json",
+    "genre_playlists_file_path": "./res/playlists.json",
+    "tier_3_yearly_threshold": 250,
     "album_length_threshold_min": 20
 }

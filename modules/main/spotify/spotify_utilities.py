@@ -1,4 +1,4 @@
-import modules.main.util.constants as constants
+import modules.main.util.constants as C
 import math
 
 
@@ -30,11 +30,11 @@ def get_tier_key(tier: int) -> str:
 
 def get_artist_name(spotify_artist: dict) -> str:
     """Get the artist name from a Spotify artist."""
-    return spotify_artist[constants.NAME_KEY]
+    return spotify_artist[C.NAME_KEY]
 
 def get_album_artist_names(spotify_album: dict) -> str:
     """Get the comma-separated list of artist names from a Spotify album."""
-    return ', '.join(map(get_artist_name, spotify_album[constants.ARTISTS_KEY]))
+    return ', '.join(map(get_artist_name, spotify_album[C.ARTISTS_KEY]))
 
 def get_track_score(spotify_track: dict) -> float:
     """
@@ -50,7 +50,7 @@ def get_track_score(spotify_track: dict) -> float:
     Returns:
         float: The track score.
     """
-    duration_min = spotify_track[constants.DURATION_MS_KEY]/1000/60
+    duration_min = spotify_track[C.DURATION_MS_KEY]/1000/60
 
     if (duration_min < .25):
         return 0
@@ -63,7 +63,7 @@ def get_track_score(spotify_track: dict) -> float:
 
 def get_track_name(spotify_track: dict) -> str:
     """Get the track name from a Spotify track."""
-    return spotify_track[constants.NAME_KEY]
+    return spotify_track[C.NAME_KEY]
 
 def get_track_names(spotify_album_tracks: list) -> list:
     """Get the track names from all of the tracks in a Spotify album."""
