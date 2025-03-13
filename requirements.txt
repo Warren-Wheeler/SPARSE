@@ -1,0 +1,1 @@
+PySimpleGUI, logging, pandas, spotipy, unittest
