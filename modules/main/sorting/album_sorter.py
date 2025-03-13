@@ -290,10 +290,3 @@ class AlbumSorter():
         override_data = self.__get_override_data(album_uri=override_uri)
         self.__configs.update_overrides(album_key=album_key, override_data=override_data)
         return override_data
-    
-
-if __name__ == "__main__":
-    configs = SparseConfigs()
-    client = SpotifyClient(configs=configs)
-    sorter = AlbumSorter(configs=configs, client=client)
-    sorter.run()

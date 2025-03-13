@@ -21,30 +21,30 @@ SPARSE is a Python-based application that fetches, ranks, and sorts albums from 
 1. Clone this repository:
    ```bash
    git clone <repository-url>
-   cd sparse-album-ranker
+   cd SPARSE
    ```
 2. Install dependencies:
    ```bash
-   pip install -r requirements.txt
+   pip3 install -r requirements.txt
    ```
 3. Configure your Spotify credentials:
-   - Update `config.json` with your Spotify `client_id` and `client_secret`.
+   - Update `config.json` with your Spotify username, Spotify developer `client_id` & `client_secret` and other info.
    
 ## Usage
 
 ### Running SPARSE
 ```bash
-python sparse.py
+python3 -m sparse
 ```
 
 ### Running just the Ranker
 ```bash
-python -m modules.main.ranking.album_ranker
+python3 -m modules.main.ranking.album_ranker
 ```
 
 ### Running just the Sorter
 ```bash
-python -m modules.main.sorting.album_sorter
+python3 -m modules.main.gui.sparse_sorter_window
 ```
 
 ### Updating Genres & Overrides
@@ -55,14 +55,17 @@ python -m modules.main.sorting.album_sorter
 ```
 modules/
   ├── main/
-  │   ├── configs/              # Configuration management
-  │   ├── ranking/              # Album ranking logic
-  │   |   ├── album_ranker.py   # Ranker script
-  │   ├── sorting/              # Album sorting logic
-  │   |   ├── album_sorter.py   # Sorter script
-  │   ├── spotify/              # Spotify API interactions
-  │   ├── util/                 # Utility functions
-sparse.py                       # Main program
+  │   ├── configs/                     # Configuration management
+  │   ├── gui/                         # GUI Management
+  │   │   ├── sparse_ranker_popup.py   # Album ranker with pop-up
+  │   │   ├── sparse_sorter_window.py  # Album sorter window
+  │   ├── ranking/                     # Album ranking logic
+  │   │   ├── album_ranker.py          # Ranker script
+  │   ├── sorting/                     # Album sorting logic
+  │   │   ├── album_sorter.py          # Sorter script
+  │   ├── spotify/                     # Spotify API interactions
+  │   ├── util/                        # Utility functions
+sparse.py                              # Main program
 ```
 
 ## Contributing
