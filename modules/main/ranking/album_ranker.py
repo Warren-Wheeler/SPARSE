@@ -8,6 +8,7 @@ from modules.main.spotify.spotify_client import SpotifyClient
 import modules.main.util.utilities as utilities
 
 
+# Set up logging.
 logging.basicConfig(filename='./log/album_ranker.log', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -24,9 +25,10 @@ class Album:
         duration_ms (int): The length of the album in milliseconds.
         album_track_names (set): The set of track names for all tracks in the album.
         playlist_placements (dict): The mapping from tier playlist placement key to track score the tracks in this album. 
-            Tier placement key formatted as: "<TRACK_NAME>_<TIER>"
+            Tier placement key formatted as: "TRACK_NAME_TIER"
         best_tracks (set): The set of tier 3 tracks in this album.
     """
+
     artists: str
     name: str
     highest_possible_score: float
@@ -35,6 +37,7 @@ class Album:
     album_track_names: set
     playlist_placements: dict
     best_tracks: set
+
 
 class AlbumRanker:
     """
@@ -53,15 +56,18 @@ class AlbumRanker:
             configs (SparseConfigs): The Album Ranker configs.
             client (SpotifyClient): The Spotify client.
         """
+
         self.__configs = configs
         self.__client = client
+
 
     def __getAlbumKeyGivenArtists(self, artists: str, album: dict) -> str:
         """
         Get the album key from a Spotify album. 
-        Formatted as: "<COMMA_SEPARATED_ALBUM_ARTISTS> - <ALBUM_TITLE>")
+            Formatted as: "{COMMA_SEPARATED_ALBUM_ARTISTS} - {ALBUM_TITLE}")
         """
-        return f"{artists} - {album[C.NAME_KEY]}"
+        return utilities.get_album_key(artists, album[C.NAME_KEY])
+
 
     def __getEmptyAlbum(self, track: dict, artist_names: str) -> Album:
         """
@@ -74,13 +80,14 @@ class AlbumRanker:
         Returns:
             dict: The empty album for the provided Spotify track.
         """
+
         album = track[C.ALBUM_KEY]
         album_id = album[C.URI_KEY]
 
         # We need more metadata for this album than we can get from the track.
         enriched_album = self.__client.getAlbum(album_id=album_id)
 
-        album_tracks = enriched_album[C.TRACKS_KEY][C.ITEMS_KEY]
+        album_tracks = spotify_utilities.get_tracks(spotify_album=enriched_album)
         highest_possible_score = spotify_utilities.get_album_highest_possible_score(spotify_album_tracks=album_tracks)
         year = utilities.extract_year_from_date(date=album[C.RELEASE_DATE_KEY])
         tracks = spotify_utilities.get_track_names(spotify_album_tracks=album_tracks)
@@ -97,6 +104,7 @@ class AlbumRanker:
         )
 
         return new_album
+
 
     def __addTieredTrackToMemory(
         self, 
@@ -124,9 +132,11 @@ class AlbumRanker:
             score (float): The score for the track.
             track_id (str): The Spotify track ID for the track.
         """
+        
         key = spotify_utilities.get_track_key(name=name, tier=tier)
         memory[album_key].playlist_placements[key] = score
         tier_key = spotify_utilities.get_tier_key(tier)
+
         # Only add to best tracks and increase album duration if this track hasn't been counted yet.
         if (tier_key not in tier_tracks[tier_key]):
             tier_tracks[tier_key].add(track_id)
@@ -150,6 +160,7 @@ class AlbumRanker:
             track_id=track_id
         )
 
+
     def __saveTrackData(
         self, track: dict, 
         tier: int, 
@@ -164,10 +175,11 @@ class AlbumRanker:
             track (dict): The Spotify track we're adding to memory.
             tier (int): The tier this track belongs to.
             album_key (str): The album key for the album we're adding this track to. 
-                Formatted as: "<COMMA_SEPARATED_ALBUM_ARTISTS> - <ALBUM_TITLE>"
+                Formatted as: "{COMMA_SEPARATED_ALBUM_ARTISTS} - {ALBUM_TITLE}"
             memory (dict): The Albums encountered during this Album Ranker run, grouped by album key.
             tier_tracks (dict): The Spotify track IDs for tracks encountered during this Album Ranker run, grouped by tier ID.
         """
+
         name = spotify_utilities.get_track_name(spotify_track=track)
         score = spotify_utilities.get_track_score(spotify_track=track)
         track_id = track[C.URI_KEY]
@@ -200,6 +212,7 @@ class AlbumRanker:
             score=score,
             track_id=track_id
         )
+
 
     def __executeTier(
         self, 
@@ -262,10 +275,13 @@ class AlbumRanker:
 
         logger.info(f"Tier {tier} complete.")
     
+
     def __isSubset(self, subsetAlbum: Album, supersetAlbum: Album) -> bool:
         """Check if the tracks in one album are a subset of the tracks in another album."""
+
         trackExistsInSuperset = lambda track: track in supersetAlbum.album_track_names
         return all(trackExistsInSuperset(track) for track in subsetAlbum.album_track_names)
+
 
     def __needsConsolidation(self, smallerAlbum: Album, largerAlbum: Album) -> bool:
         """
@@ -273,10 +289,12 @@ class AlbumRanker:
             1. The smaller album and larger album have the same artists, name and year.
             2. The tracks in the smaller album is a subset of the tracks in the larger album.
         """
+
         names_match = smallerAlbum.artists == largerAlbum.artists and \
             smallerAlbum.name == largerAlbum.name and \
             smallerAlbum.year == largerAlbum.year
         return names_match or self.__isSubset(subsetAlbum=smallerAlbum, supersetAlbum=largerAlbum)
+
 
     def __consolidateAlbums(self, memory: dict) -> None:
         """
@@ -326,10 +344,15 @@ class AlbumRanker:
                         memory[key].highest_possible_score = override[C.HIGHEST_POSSIBLE_SCORE_KEY]
                     if C.YEAR_KEY in override:
                         memory[key].year = override[C.YEAR_KEY]
+                    if C.NAME_KEY in override:
+                        memory[key].name = override[C.NAME_KEY]
+                    if C.ARTISTS_KEY in override:
+                        memory[key].artists = override[C.ARTISTS_KEY]
             
         # Filter out short albums.
         for key in keys_to_delete:
             del memory[key]
+
 
     def __addTracksToPlaylist(self, tier: int, playlist_id: str, tracks: list) -> None:
         """
@@ -341,11 +364,14 @@ class AlbumRanker:
             playlist_id (str): The Spotify Playlist ID for the playlist that we're adding tracks to.
             tracks (list): The list of Spotify track IDs we're adding to the playlist
         """
+
         logger.info(f"Adding tracks back to tier {tier}...")
         self.__client.addPlaylistItems(playlist_id=playlist_id, tracks=tracks)
 
+
     def __executeTierTrackDiff(self, tier_tracks: dict) -> None:
         """Remove tracks represented in higher tiers from lower tiers in memory."""
+
         tier_tracks[spotify_utilities.get_tier_key(2)] = tier_tracks[spotify_utilities.get_tier_key(2)].difference(
             tier_tracks[spotify_utilities.get_tier_key(3)]
         )
@@ -353,15 +379,19 @@ class AlbumRanker:
             tier_tracks[spotify_utilities.get_tier_key(3)] | tier_tracks[spotify_utilities.get_tier_key(2)]
         )
 
+
     def __getOutputRowFromAlbum(self, album: Album) -> str:
         """Get a stringified row for the Album Ranker output file given an album."""
+
         artists = album.artists
         name = album.name
         year = album.year
         total_score = sum(album.playlist_placements.values())
         highest_score = album.highest_possible_score
         best_songs = str(list(album.best_tracks))
+
         return f"\n\"{artists}\",\"{name}\",{year},{total_score},{highest_score},\"{best_songs}\""
+
 
     def __writeAlbumRankerResults(self, memory: dict) -> None:
         """Write the album ranker results to a CSV file."""
@@ -390,6 +420,7 @@ class AlbumRanker:
             if year_counts[key] > self.__configs.get_tier_3_yearly_threshold():
                 logger.warning(f"Warning: {year_counts[key]} tier 3 tracks in year {key}.")
 
+
     def __executeAllTiers(self, memory: dict, tier_tracks:dict) -> None:
         """Collect scoring metadata on all tier playlists."""
 
@@ -417,6 +448,7 @@ class AlbumRanker:
             tier_tracks=tier_tracks
         )   
 
+
     def __addTracksBackToTierPlaylists(self, tier_tracks: dict) -> None:
         """Add all tracks back to tier playlists that were deleted during the process of collecting scoring metadata."""
 
@@ -440,6 +472,7 @@ class AlbumRanker:
             playlist_id=self.__configs.get_tier_1_playlist_id(), 
             tracks=tier_tracks[spotify_utilities.get_tier_key(1)]
         )
+
 
     def run(self) -> None:
         """Runs the Album Ranker."""
@@ -470,3 +503,10 @@ class AlbumRanker:
         self.__writeAlbumRankerResults(memory=memory)
 
         logger.info(f"Ranker completed in {utilities.get_seconds_since_datetime(t0)} seconds.")
+        
+        
+if __name__ == "__main__":
+    configs = SparseConfigs()
+    client = SpotifyClient(configs=configs)
+    ranker = AlbumRanker(configs=configs, client=client)
+    ranker.run()

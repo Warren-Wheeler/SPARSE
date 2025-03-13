@@ -5,6 +5,7 @@ import modules.main.util.utilities as utilities
 
 class TestSparseConfigsValidation(unittest.TestCase):
 
+
     def test_extract_year_from_date(self):
         """Test extract_year_from_date()."""
         
@@ -25,6 +26,7 @@ class TestSparseConfigsValidation(unittest.TestCase):
             with self.assertRaises(ValueError):
                 utilities.extract_year_from_date("a" + date)
 
+
     def test_get_seconds_since_datetime(self):
         """Test get_seconds_since_datetime()."""
 
@@ -36,5 +38,7 @@ class TestSparseConfigsValidation(unittest.TestCase):
             places=4
         )
 
+
 if __name__ == '__main__':
     unittest.main()
+    

@@ -38,3 +38,24 @@ def get(data: dict, key: any, orElse: any = None):
         return data[key]
     except KeyError:
         return orElse
+    
+def get_album_key(artist_names: str, album_name: str) -> str:
+    """"""
+    return f"{artist_names} - {album_name}"
+
+def remove_suffix_if_exists(word: str, suffix: str):
+    """
+    Removes the suffix from a word if it exists.
+
+    Args:
+        word: The word to remove the suffix from.
+        suffix: The suffix to remove.
+
+    Returns:
+        The word with the suffix removed, or the original word if the suffixwas not found.
+    """
+
+    if word.endswith(suffix):
+        return word[:-len(suffix)]
+    else:
+        return word

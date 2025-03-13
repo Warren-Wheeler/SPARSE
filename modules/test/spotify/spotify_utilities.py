@@ -3,7 +3,11 @@ import modules.main.spotify.spotify_utilities as spotify_utilities
 
 
 class TestSpotifyUtilities(unittest.TestCase):
+
+
     def setUp(self):
+        """Setup before running the unit tests."""
+
         self.spotify_artist_1 = {
             "name": "Kendrick Lamar"
         }
@@ -18,21 +22,6 @@ class TestSpotifyUtilities(unittest.TestCase):
         }
         self.spotify_artist_5 = {
             "name": ""
-        }
-        self.spotify_album_1 = {
-            "artists": [self.spotify_artist_1]
-        }
-        self.spotify_album_2 = {
-            "artists": [self.spotify_artist_1, self.spotify_artist_2]
-        }
-        self.spotify_album_3 = {
-            "artists": [self.spotify_artist_3, self.spotify_artist_4]
-        }
-        self.spotify_album_4 = {
-            "artists": [self.spotify_artist_5]
-        }
-        self.spotify_album_5 = {
-            "artists": []
         }
         self.spotify_track_1 = {
             "name": "!!!!!!!",
@@ -61,6 +50,37 @@ class TestSpotifyUtilities(unittest.TestCase):
             self.spotify_track_4, 
             self.spotify_track_5
         ]
+        self.spotify_album_1 = {
+            "artists": [self.spotify_artist_1],
+            "tracks": {
+                "items": [self.spotify_track_1]
+            }
+        }
+        self.spotify_album_2 = {
+            "artists": [self.spotify_artist_1, self.spotify_artist_2],
+            "tracks": {
+                "items": [self.spotify_track_1, self.spotify_track_2]
+            }
+        }
+        self.spotify_album_3 = {
+            "artists": [self.spotify_artist_3, self.spotify_artist_4],
+            "tracks": {
+                "items": [self.spotify_track_2, self.spotify_track_3, self.spotify_track_4]
+            }
+        }
+        self.spotify_album_4 = {
+            "artists": [self.spotify_artist_5],
+            "tracks": {
+                "items": []
+            }
+        }
+        self.spotify_album_5 = {
+            "artists": [],
+            "tracks": {
+                "items": [self.spotify_track_5]
+            }
+        }
+
 
     def test_is_valid_tier(self):
         """Test is_valid_tier()."""
@@ -78,6 +98,7 @@ class TestSpotifyUtilities(unittest.TestCase):
         ]
         for tier, expectation in tiers_and_expectations:
             self.assertEqual(spotify_utilities.is_valid_tier(tier=tier), expectation)
+
 
     def test_get_track_key(self):
         """Test get_track_key()"""
@@ -109,6 +130,7 @@ class TestSpotifyUtilities(unittest.TestCase):
         with self.assertRaises(spotify_utilities.SparsePlaylistTierException):
             spotify_utilities.get_track_key(name=None, tier=2)
 
+
     def test_get_tier_key(self):
         """Test get_tier_key()."""
 
@@ -127,6 +149,7 @@ class TestSpotifyUtilities(unittest.TestCase):
             with self.assertRaises(spotify_utilities.SparsePlaylistTierException):
                 spotify_utilities.get_tier_key(tier=tier)
 
+
     def test_get_artist_name(self):
         """Test get_artist_name()."""
 
@@ -141,11 +164,12 @@ class TestSpotifyUtilities(unittest.TestCase):
         for artist, expectation in artists_and_expectations:
             self.assertEqual(spotify_utilities.get_artist_name(artist), expectation)
 
-        # Artists without names should raise SparsePlaylistTierException.
+        # Artists without names should raise SparseReturnDataException.
         for artist, _ in artists_and_expectations:
             del artist["name"]
-            with self.assertRaises(KeyError):
+            with self.assertRaises(spotify_utilities.SparseReturnDataException):
                 spotify_utilities.get_artist_name(artist)
+
 
     def test_get_album_artist_names(self):
         """Test get_album_artist_names()."""
@@ -161,11 +185,12 @@ class TestSpotifyUtilities(unittest.TestCase):
         for album, expectation in albums_and_expectations:
             self.assertEqual(spotify_utilities.get_album_artist_names(album), expectation)
 
-        # Albums without artists should raise SparsePlaylistTierException.
+        # Albums without artists should raise SparseReturnDataException.
         for album, _ in albums_and_expectations:
             del album["artists"]
-            with self.assertRaises(KeyError):
+            with self.assertRaises(spotify_utilities.SparseReturnDataException):
                 spotify_utilities.get_album_artist_names(album)
+
 
     def test_get_track_score(self):
         """Test get_track_score()."""
@@ -181,11 +206,12 @@ class TestSpotifyUtilities(unittest.TestCase):
         for track, expectation in tracks_and_expectations:
             self.assertEqual(spotify_utilities.get_track_score(track), expectation)
 
-        # Tracks without a duration should raise SparsePlaylistTierException.
+        # Tracks without a duration should raise SparseReturnDataException.
         for track, _ in tracks_and_expectations:
             del track["duration_ms"]
-            with self.assertRaises(KeyError):
+            with self.assertRaises(spotify_utilities.SparseReturnDataException):
                 spotify_utilities.get_track_score(track)
+
 
     def test_get_track_name(self):
         """Test get_track_name()."""
@@ -201,25 +227,70 @@ class TestSpotifyUtilities(unittest.TestCase):
         for track, expectation in tracks_and_expectations:
             self.assertEqual(spotify_utilities.get_track_name(track), expectation)
 
-        # Tracks without names should raise SparsePlaylistTierException.
+        # Tracks without names should raise SparseReturnDataException.
         for track, _ in tracks_and_expectations:
             del track["name"]
-            with self.assertRaises(KeyError):
+            with self.assertRaises(spotify_utilities.SparseReturnDataException):
                 spotify_utilities.get_track_name(track)
+
 
     def test_get_track_names(self):
         """Test get_track_names()."""
+
         self.assertEqual(
             spotify_utilities.get_track_names(spotify_album_tracks=self.spotify_album_tracks),
             ["!!!!!!!", "U-Love", "Not Like Us", "Stairway to Heaven - Remaster", ""]
         )
 
+
+    def get_tracks(self):
+        """Test get_tracks()."""
+
+        # Albums with tracks should match expected tracks.
+        albums_and_expectations = [
+            (self.spotify_album_1, [self.spotify_track_1]),
+            (self.spotify_album_2, [self.spotify_track_1, self.spotify_track_2]),
+            (self.spotify_album_3, [self.spotify_track_2, self.spotify_track_3, self.spotify_track_4]),
+            (self.spotify_album_4, []),
+            (self.spotify_album_5, [self.spotify_track_5])
+        ]
+        for album, expectation in albums_and_expectations:
+            self.assertEqual(spotify_utilities.get_tracks(spotify_album=album), expectation)
+
+        # Albums without tracks should raise SparseReturnDataException.
+        for album, _ in albums_and_expectations:
+            del album
+            with self.assertRaises(spotify_utilities.SparseReturnDataException):
+                spotify_utilities.get_tracks(spotify_album=self.spotify_album_1)
+
+
     def test_get_album_highest_possible_score(self):
         """Test get_album_highest_possible_score()."""
+
         self.assertEqual(
             spotify_utilities.get_album_highest_possible_score(spotify_album_tracks=self.spotify_album_tracks), 
             10.5 # Mock album has two 0pt tracks, one 0.5pt track, one 1pt track and one 2pt track. 3.5 in total, multiplied by 3 if all were tier 3.
         )
+
+
+    def test_get_album_uri_from_share_link(self):
+        """Test get_album_uri_from_share_link()."""
+        
+        # All links should match expectations.
+        links_and_expectations = [
+            ("https://open.spotify.com/album/1234567890", "spotify:album:1234567890"),
+            ("https://open.spotify.com/album/1234567890?si=9999999", "spotify:album:1234567890"),
+            ("https://open.spotify.com/album/1234567890?si=1234567890&nd=1", "spotify:album:1234567890"),
+            ("https://open.spotify.com/album/1234567890?nd=1&si=8888", "spotify:album:1234567890"),
+            ("https://open.spotify.com/album/1234567890?nd=1", "spotify:album:1234567890"),
+            ("https://open.spotify.com/album/", "spotify:album:"),
+            ("https://www.google.com/", "spotify:album:"),
+            ("spotify:album:1234567890", "spotify:album:1234567890"),
+            ("", "spotify:album:")
+        ]
+        for link, expectation in links_and_expectations:
+            self.assertEqual(spotify_utilities.get_album_uri_from_share_link(share_link=link), expectation)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -14,6 +14,7 @@ class SpotifyClient:
     # The scope for the python API. We need modify permissions to remove all tracks from each temp playlist and add them back.
     __scope = "playlist-modify-public"
 
+
     def __init__(self, configs: SparseConfigs):
         """
         Initializes an Spotify Client object.
@@ -21,6 +22,7 @@ class SpotifyClient:
         Args:
             configs (AlbumRankerConfigs): The Album Ranker configs.
         """
+
         self.__client = spotipy.Spotify(auth_manager=SpotifyOAuth(
             client_id=configs.get_client_id(),
             client_secret=configs.get_client_secret(),
@@ -29,6 +31,7 @@ class SpotifyClient:
         ))
         self.__user = configs.get_user()
 
+
     def __run_with_retry(
         self, 
         func, 
@@ -36,7 +39,7 @@ class SpotifyClient:
         param_2: any = None, 
         max_retries: int=3, 
         delay_seconds: int=1
-    ):
+    ) -> any:
         """
         Run something with a variable number of times if an exception is encountered.
 
@@ -47,6 +50,7 @@ class SpotifyClient:
             retries (int): The number of retries before throwing an exception. 2 by default.
             delay_seconds (int): Delay between tries in seconds.
         """
+
         for attempt in range(max_retries):
             try:
                 return func(param_1, param_2)
@@ -56,23 +60,29 @@ class SpotifyClient:
                 print(f"Attempt {attempt + 1} failed: {e}, retrying in {delay_seconds} seconds...")
                 time.sleep(delay_seconds)
 
+
     def getAlbum(self, album_id: str) -> dict:
         """Try to fetch an album using the Spotify client."""
         return self.__run_with_retry(func=self.__client.album, param_1=album_id)
+
 
     def getPlaylistItems(self, playlist_id: str) -> dict:
         """Try to fetch the tracks from a playlist using the Spotify client."""
         return self.__run_with_retry(func=self.__client.playlist, param_1=playlist_id)[C.TRACKS_KEY][C.ITEMS_KEY]
 
+
     def getTracks(self, track_uris) -> list:
         """Try to fetch tracks using Spotify client."""
+
         gathered_tracks = []
         for batch in batched(track_uris, 50):
             gathered_tracks.extend(self.__run_with_retry(func=self.__client.tracks, param_1=batch)[C.TRACKS_KEY])
         return gathered_tracks
 
+
     def removePlaylistItems(self, playlist_id: str, tracks: list) -> None:
         """Try to remove tracks from a playlist in batches of 100 using the Spotify client."""
+
         for batch in batched(tracks, 100):
             self.__run_with_retry(
                 func=self.__client.playlist_remove_all_occurrences_of_items, 
@@ -80,8 +90,10 @@ class SpotifyClient:
                 param_2=batch
             )
 
+
     def addPlaylistItems(self, playlist_id: str, tracks: list) -> None:
         """Try to add tracks to a playlist in batches of 100 using the Spotify client."""
+
         for batch in batched(tracks, 100):
             self.__run_with_retry(
                 func=self.__client.playlist_add_items,
@@ -89,8 +101,10 @@ class SpotifyClient:
                 param_2=batch
             )
 
+
     def createUserPlaylist(self, playlist_title: str) -> str:
         """Try to create a playlist using the Spotify client."""
+
         return self.__run_with_retry(
             func=self.__client.user_playlist_create,
             param_1=self.__user,

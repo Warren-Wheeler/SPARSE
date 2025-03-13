@@ -4,8 +4,12 @@ import modules.main.configs.sparse_configs_validation as validation
 
 
 class TestSparseConfigsValidation(unittest.TestCase):
+
+
     def setUp(self):
+        """Setup for unit tests."""
         self.configs_file_path = "test"
+
 
     def test_raise_exception_if_issues_exist(self):
         """Test raise_exception_if_issues_exist()."""
@@ -23,6 +27,7 @@ class TestSparseConfigsValidation(unittest.TestCase):
             validation.raise_exception_if_issues_exist(issues=[], configs_file_path=self.configs_file_path)
         except validation.SparseConfigsException:
             self.fail("raise_exception_if_issues_exist() raised SparseConfigsException unexpectedly.")
+
 
     def test_check_key(self):
         """Test check_key()."""
@@ -60,6 +65,7 @@ class TestSparseConfigsValidation(unittest.TestCase):
                 issues=issues
             )
             self.assertEqual(len(issues), expectation)
+
 
     def test_validate(self):
         """Test validate()."""
@@ -152,6 +158,7 @@ class TestSparseConfigsValidation(unittest.TestCase):
         configs[C.ALBUM_LENGTH_THRESHOLD_MIN_KEY] = 0
         with self.assertRaises(validation.SparseConfigsException):
             validation.validate(configs=configs, configs_file_path=self.configs_file_path)
+
 
 if __name__ == '__main__':
     unittest.main()

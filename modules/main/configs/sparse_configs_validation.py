@@ -5,6 +5,7 @@ class SparseConfigsException(Exception):
     """An exception that is thrown when there is a problem with validating the configs file."""
     pass
 
+
 def raise_exception_if_issues_exist(issues: list, configs_file_path: str) -> None:
     """Throw an exception if there are issues with the config file."""
     if issues:
@@ -12,6 +13,7 @@ def raise_exception_if_issues_exist(issues: list, configs_file_path: str) -> Non
         for issue in issues: issuesString += f"\n\t{issue}"
         raise SparseConfigsException(issuesString)
     
+
 def check_key(
     configs: dict, 
     key: str, 
@@ -39,6 +41,7 @@ def check_key(
     elif expected_suffix and not f"{configs[key]}".lower().endswith(expected_suffix):
         issues.append(f"`{key}` in Sparse configs did not end with expected suffix `{expected_suffix}`.")
 
+
 def validate(configs: dict, configs_file_path: str) -> None:
     """
     Validates the parsed configs. Throws a detailed exception if there are issues with the configs.
@@ -47,6 +50,7 @@ def validate(configs: dict, configs_file_path: str) -> None:
         configs (dict): The parsed configs.
         configs_file_path (str): The path to the configs file.
     """
+    
     issues = []
 
     # Check the config dict to make sure the expected keys exist, have the expected type and have the expected suffix.
