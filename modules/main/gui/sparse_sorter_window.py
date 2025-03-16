@@ -84,16 +84,17 @@ def run(sorter: AlbumSorter):
                 else:
                     year = int(year_value)
                 genre_value = values[C.ALBUM_LIST_GENRE_KEY]
-                if genre_value != C.ALL_GENRES_NAME:
-                    genre_keyword = utilities.remove_suffix_if_exists(word=genre_value, suffix=C.KEYWORD_SUFFIX)
+                if genre_value == C.ALL_GENRES_NAME:
+                    genre = None
                 else:
-                    genre_keyword = None
-                album_list = sorter.get_album_list(year=year, genre_keyword=genre_keyword)
-                window[C.ALBUM_LIST_OUTPUT_KEY].update(album_list)
+                    genre = genre_value
 
             # Display a helpful error message if the year was invalid:
             except ValueError:
                 window[C.ALBUM_LIST_OUTPUT_KEY].update(C.YEAR_ERROR_MESSAGE)
+
+            album_list = sorter.get_album_list(year=year, genre=genre)
+            window[C.ALBUM_LIST_OUTPUT_KEY].update(album_list)
             
         # If the user clicks the `list tier 3 tracks` button:
         elif event == C.LIST_TIER_3_TAG:
@@ -118,15 +119,39 @@ def run(sorter: AlbumSorter):
             # Save the current un-genred album to memory + disk and add the tier three tracks to genre-specific playlists 
             # based on the comma-separated list of genres currently entered into the genre input field.
             genre_input = values[C.GENRE_INPUT_KEY]
-            if (len(selected_ungenred_album) == 2) & (genre_input != ""):
-                sorter.assign_genres_to_album(
-                    artist_names=selected_ungenred_album[0],
-                    album_name=selected_ungenred_album[1],
-                    genres=genre_input
-                )
-                selected_ungenred_album = sorter.get_next_album_with_unknown_genre()
-                album_key = utilities.get_album_key(artist_names=selected_ungenred_album[0], album_name=selected_ungenred_album[1])
-                window[C.UNKNOWN_ALBUM_KEY].update(album_key)
+            if (selected_ungenred_album != None) & (genre_input != ""):
+                if len(selected_ungenred_album) == 2:
+
+                    cleaned_genres = utilities.get_clean_genres_list(genres_string=genre_input)
+                    validated_genres = []
+                    for cleaned_genre in cleaned_genres:
+                        validated_genres.append(cleaned_genre)
+                        for potential_match in sorter.get_similar_genres(genre=cleaned_genre):
+                            choice, _ = sg.Window(
+                                "Which Genre?", 
+                                [[sg.T(f"You typed `{cleaned_genre}`, but we found that `{potential_match}` already exists in the database. Did you actually mean `{potential_match}`?")], [sg.Yes(s=10), sg.No(s=10)]], 
+                                disable_close=True
+                            ).read(close=True) 
+
+                            if choice == "Yes":
+                                validated_genres.pop()
+                                validated_genres.append(potential_match)
+                                break
+
+                    sorter.assign_genres_to_album(
+                        artist_names=selected_ungenred_album[0],
+                        album_name=selected_ungenred_album[1],
+                        genres_list=validated_genres
+                    )
+                    selected_ungenred_album = sorter.get_next_album_with_unknown_genre()
+                    if (selected_ungenred_album != None):
+                        album_key = utilities.get_album_key(
+                            artist_names=selected_ungenred_album[0], 
+                            album_name=selected_ungenred_album[1]
+                        )
+                        window[C.UNKNOWN_ALBUM_KEY].update(album_key)
+                    else:
+                        window[C.UNKNOWN_ALBUM_KEY].update(C.END_OF_LIST)
 
         # If the user clicks the `confirm override` button:
         elif event == C.CONFIRM_OVERRIDE_TAG:

@@ -28,14 +28,14 @@ class AlbumSorter():
         self.refresh_df()
     
 
-    def __get_filtered_df(self, year: int, genre_keyword: str = None) -> pd.DataFrame:
+    def __get_filtered_df(self, year: int, genre: str = None) -> pd.DataFrame:
         """
         Return a copy of the album data that has been filtered by year and/or genre keyword.
 
         Args:
             year (int): The year that all albums in the filtered dataframe must match. 
                 If None, return all available years.
-            genre_keyword (str): The keyword that the full genre must contain for all albums in the filtered dataframe. 
+            genre (str): The keyword that the full genre must contain for all albums in the filtered dataframe. 
                 If None, return all available genres.
 
         Return:
@@ -43,10 +43,19 @@ class AlbumSorter():
         """
 
         # If year and genre_keyword are not empty, filter on both.
-        if (year != None) & (genre_keyword != None):
+        if (year != None) & (genre != None):
+            contains_word_suffix = genre.endswith(C.KEYWORD_SUFFIX)
             return self.__df[
-                (self.__df[C.SORTER_YEAR_KEY] == year) & 
-                    (self.__df[C.SORTER_GENRES_KEY].str.contains(genre_keyword, na=False))
+                (self.__df[C.SORTER_YEAR_KEY] == year) &
+                    (
+                        (contains_word_suffix & self.__df[C.SORTER_GENRES_KEY].str.contains(genre[:-len(C.KEYWORD_SUFFIX)], na=False)) |
+                        (~contains_word_suffix & (
+                            (self.__df[C.SORTER_GENRES_KEY].str.startswith(f"{genre},", na=False)) |
+                            (self.__df[C.SORTER_GENRES_KEY].str.contains(f", {genre}, ", na=False)) |
+                            (self.__df[C.SORTER_GENRES_KEY].str.endswith(f", {genre}", na=False)) |
+                            (self.__df[C.SORTER_GENRES_KEY].str == genre)
+                        ))
+                    )
             ]
         
         # If year is not empty but genre_keyword is, just filter on year.
@@ -54,8 +63,17 @@ class AlbumSorter():
             return self.__df[self.__df[C.SORTER_YEAR_KEY] == year]
         
         # If genre_keyword is not empty but year is, just filter on genre_keyword.
-        elif genre_keyword != None:
-            return self.__df[self.__df[C.SORTER_GENRES_KEY].str.contains(genre_keyword, na=False)]
+        elif genre != None:
+            contains_word_suffix = genre.endswith(C.KEYWORD_SUFFIX)
+            return self.__df[(
+                (contains_word_suffix & self.__df[C.SORTER_GENRES_KEY].str.contains(genre[:-len(C.KEYWORD_SUFFIX)], na=False)) |
+                (~contains_word_suffix & (
+                    (self.__df[C.SORTER_GENRES_KEY].str.startswith(f"{genre},", na=False)) |
+                    (self.__df[C.SORTER_GENRES_KEY].str.contains(f", {genre}, ", na=False)) |
+                    (self.__df[C.SORTER_GENRES_KEY].str.endswith(f", {genre}", na=False)) |
+                    (self.__df[C.SORTER_GENRES_KEY].str == genre)
+                ))
+            )]
         
         # If both year and genre_keyword are empty, return all available album data.
         else:
@@ -86,7 +104,7 @@ class AlbumSorter():
     def __get_albums_with_unknown_genre(self) -> pd.DataFrame:
         """Fetch albums whose genre has not been determined yet from memory."""
         return self.__df[self.__df[C.SORTER_GENRES_KEY] == C.UNKNOWN_GENRE_NAME]
-    
+
     
     def __add_tracks_to_genre_playlist(self, tracks_ids: list, genre: str) -> None:
         """Add a list of tracks to a genre-specific playlist in the user's library. Creates a new playlist if one doesn't exist yet."""
@@ -106,9 +124,9 @@ class AlbumSorter():
             self.__client.addPlaylistItems(playlist_id=playlist_uri, tracks=tracks_ids)
             
 
-    def __write_genres(self, artist_names: str, album_name: str, genres: str) -> None:
+    def __write_genres(self, artist_names: str, album_name: str, genres_list: list) -> None:
         """Record an album's genres to memory and disk."""
-
+        genres = ",".join(genres_list)
         self.__configs.update_genre_data(
             album_key=utilities.get_album_key(artist_names=artist_names, album_name=album_name),
             genre_data={
@@ -185,7 +203,7 @@ class AlbumSorter():
         for genre in all_genres:
             for word in genre.split(' '):
                 keyword = f"{word}{C.KEYWORD_SUFFIX}"
-                if word not in genre_word_counts:
+                if keyword not in genre_word_counts:
                     genre_word_counts[keyword] = 1
                 else:
                     genre_word_counts[keyword] += 1
@@ -204,11 +222,11 @@ class AlbumSorter():
         return [C.ALL_YEARS_NAME] + sorted(self.__df[C.SORTER_YEAR_KEY].unique().tolist(), reverse=True)
 
 
-    def get_album_list(self, year: int, genre_keyword: str) -> str:
+    def get_album_list(self, year: int, genre: str) -> str:
         """Get the human-readable list of albums, filtered by year and genre keyword."""
 
         self.refresh_df()
-        df = self.__get_filtered_df(year=year, genre_keyword=genre_keyword)
+        df = self.__get_filtered_df(year=year, genre=genre)
         return self.__album_data_to_str(df)
 
 
@@ -238,7 +256,7 @@ class AlbumSorter():
         return pd.DataFrame(formatted_tracks).to_markdown()
 
 
-    def assign_genres_to_album(self, artist_names: str, album_name: str, genres: str) -> None:
+    def assign_genres_to_album(self, artist_names: str, album_name: str, genres_list: list) -> None:
         """
         Assign genres to a ranked album if it exists. Do nothing if the album does not exist.
 
@@ -254,10 +272,7 @@ class AlbumSorter():
             (self.__df[C.SORTER_ALBUM_NAME_KEY] == album_name)
         ]
 
-        if not ranked_album.empty:
-
-            # Get a list of genres from the comma-separated string.
-            genres_list = list(map(lambda genre: genre.strip(), genres.split(',')))
+        if (not ranked_album.empty) and (genres_list != []):
 
             # Get the tier 3 tracks from the ranked album.
             track_ids = ast.literal_eval(ranked_album.iloc[0][C.SORTER_TIER_3_TRACKS_KEY])
@@ -267,7 +282,7 @@ class AlbumSorter():
                 self.__add_tracks_to_genre_playlist(track_ids, genre)
 
             # Record the genre for this ranked album.
-            self.__write_genres(artist_names=artist_names, album_name=album_name, genres=genres)
+            self.__write_genres(artist_names=artist_names, album_name=album_name, genres_list=genres_list)
 
 
     def add_override(
@@ -290,3 +305,22 @@ class AlbumSorter():
         override_data = self.__get_override_data(album_uri=override_uri)
         self.__configs.update_overrides(album_key=album_key, override_data=override_data)
         return override_data
+
+    def get_similar_genres(self, genre: str) -> list:
+        """
+        Get a list of genres that are similar to the provided genre.
+
+        Args:
+            genre (str): The genre to find similar genres for.
+
+        Returns:
+            list: A list of similar genres.
+        """
+        all_genres = self.__configs.get_all_genres()
+        similar_genres = list(filter(
+            lambda genre_from_file: 
+                utilities.get_string_similarity(genre_from_file, genre) > C.GENRE_SIMILARITY_THRESHOLD, 
+            all_genres
+        ))
+
+        return similar_genres

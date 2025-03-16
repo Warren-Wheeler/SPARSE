@@ -1,4 +1,5 @@
 import datetime as dt
+from difflib import SequenceMatcher
 import json
 
 
@@ -21,6 +22,7 @@ def read_json_file(file_path: str) -> dict:
     except json.JSONDecodeError:
         raise json.JSONDecodeError(f"Error: Invalid JSON format in {file_path}")
 
+
 def extract_year_from_date(date: str) -> int:
     """Extract the year from a date string. Strips whitespace."""
     try:
@@ -28,34 +30,40 @@ def extract_year_from_date(date: str) -> int:
     except ValueError:
         raise ValueError(f"Error: Invalid date format {date}.")
 
+
 def get_seconds_since_datetime(t0: dt.datetime) -> float:
     """Get the number of seconds that have passed since a datetime."""
     now = dt.datetime.now()
     return (now-t0).total_seconds()
 
+
 def get(data: dict, key: any, orElse: any = None):
+    """Get a key from a dict. Return the `orElse` value if the requested key is missing."""
     try:
         return data[key]
     except KeyError:
         return orElse
     
-def get_album_key(artist_names: str, album_name: str) -> str:
-    """"""
-    return f"{artist_names} - {album_name}"
 
-def remove_suffix_if_exists(word: str, suffix: str):
+def get_album_key(artist_names: str, album_name: str) -> str:
+    """Get the album key for an album."""
+    return f"{artist_names} - {album_name}"
+    
+
+def get_clean_genres_list(genres_string: str) -> list:
+    """Get a list of stripped, capitalized genres from a comma-separated list."""
+    return list(map(lambda genre: genre.strip().title(), genres_string.split(',')))
+
+
+def get_string_similarity(s1: str, s2: str) -> float:
     """
-    Removes the suffix from a word if it exists.
+    Get the similarity between two strings.
 
     Args:
-        word: The word to remove the suffix from.
-        suffix: The suffix to remove.
+        s1: The first string.
+        s2: The second string.
 
     Returns:
-        The word with the suffix removed, or the original word if the suffixwas not found.
+        The similarity between the two strings, as a float between 0 and 1.
     """
-
-    if word.endswith(suffix):
-        return word[:-len(suffix)]
-    else:
-        return word
+    return SequenceMatcher(None, s1, s2).ratio()

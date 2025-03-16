@@ -63,6 +63,11 @@ class SparseConfigs:
     def get_album_length_threshold_min(self) -> int:
         """Get the Album length threshold in minutes. All albums shorter than this length will be filtered out."""
         return self.__album_length_threshold_min
+    
+
+    def get_all_genres(self) -> set:
+        """Get the list of all genres."""
+        return self.__genre_playlists_by_name.keys()
 
 
     def get_client_id(self) -> str:
