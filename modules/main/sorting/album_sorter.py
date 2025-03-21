@@ -126,7 +126,7 @@ class AlbumSorter():
 
     def __write_genres(self, artist_names: str, album_name: str, genres_list: list) -> None:
         """Record an album's genres to memory and disk."""
-        genres = ",".join(genres_list)
+        genres = ", ".join(genres_list)
         self.__configs.update_genre_data(
             album_key=utilities.get_album_key(artist_names=artist_names, album_name=album_name),
             genre_data={
@@ -319,7 +319,7 @@ class AlbumSorter():
         all_genres = self.__configs.get_all_genres()
         similar_genres = list(filter(
             lambda genre_from_file: 
-                utilities.get_string_similarity(genre_from_file, genre) > C.GENRE_SIMILARITY_THRESHOLD, 
+                1 > utilities.get_string_similarity(genre_from_file, genre) > C.GENRE_SIMILARITY_THRESHOLD, 
             all_genres
         ))
 

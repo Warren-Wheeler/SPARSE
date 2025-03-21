@@ -2,19 +2,21 @@ from modules.main.configs.sparse_configs import SparseConfigs
 from modules.main.spotify.spotify_client import SpotifyClient
 from modules.main.ranking.album_ranker import AlbumRanker
 from modules.main.sorting.album_sorter import AlbumSorter
-import modules.main.gui.sparse_ranker_popup as RankerPopup
-import modules.main.gui.sparse_sorter_window as SorterWindow
+from modules.main.gui.sparse_ranker_popup import SparseRankerPopup
+from modules.main.gui.sparse_sorter_window import SparseSorterWindow
 from multiprocessing import Process
 import time
 
 configs = SparseConfigs()
 client = SpotifyClient(configs=configs)
 ranker = AlbumRanker(configs=configs, client=client)
+ranker_popup = SparseRankerPopup(ranker=ranker)
 sorter = AlbumSorter(configs=configs, client=client)
+sorter_window = SparseSorterWindow(sorter=sorter)
 
 if __name__ == "__main__":
-    p1 = Process(target=SorterWindow.run, args=(sorter,))
-    p2 = Process(target=RankerPopup.run, args=(ranker,))
+    p1 = Process(target=sorter_window.run)
+    p2 = Process(target=ranker_popup.run)
 
     p1.start()
 
